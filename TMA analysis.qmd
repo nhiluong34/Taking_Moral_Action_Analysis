@@ -23,6 +23,17 @@ library(pdftools)
 text <- pdf_text("TakingMoralActionFinal-3.pdf")
 ```
 
+## Basic info
+
+```{r}
+# Author, version, etc
+pdf_info("TakingMoralActionFinal-3.pdf")
+
+# Table of contents
+pdf_toc("TakingMoralActionFinal-3.pdf") # doesn't work well here
+```
+
+
 ## Look at some pages
 
 ```{r}
@@ -30,6 +41,18 @@ text <- pdf_text("TakingMoralActionFinal-3.pdf")
 text[11]
 
 # Chapter 1: Evolution (first page)
-text[57]
+cat(text[57])
+print(text[57])
+```
+
+
+
+
+# Test area
+
+```{r}
+str_trim(text[57])
+
+
 ```
 
