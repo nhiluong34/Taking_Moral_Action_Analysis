@@ -15,6 +15,7 @@ library(tidytext)
 library(ggplot2)
 library(dplyr)
 library(pdftools)
+library(stringr)
 ```
 
 # Scrape book pdf
@@ -30,7 +31,11 @@ text <- pdf_text("TakingMoralActionFinal-3.pdf")
 pdf_info("TakingMoralActionFinal-3.pdf")
 
 # Table of contents
-pdf_toc("TakingMoralActionFinal-3.pdf") # doesn't work well here
+toc <- pdf_toc("TakingMoralActionFinal-3.pdf") # doesn't work well here
+
+# Fonts
+pdf_fonts("TakingMoralActionFinal-3.pdf")
+
 ```
 
 
@@ -42,17 +47,36 @@ text[11]
 
 # Chapter 1: Evolution (first page)
 cat(text[57])
-print(text[57])
 ```
 
-
-
-
-# Test area
+# Basic text cleaning
 
 ```{r}
-str_trim(text[57])
+text_trim <- str_squish(text)
+# Total of 370
 
+text_trim[55]
+```
 
+# Divide into Part then Chapter
+
+```{r}
+str_view(text_trim, "^Part") 
+```
+
+- Using str_view, we see Part I is from [55] to [140], Part II [141] to [230], Part III [231] to end (including Index). We could use this to combine text into 3 Parts first.
+
+```{r}
+part1 <- text_trim[55:140]
+part2 <- text_trim[141:230]
+part3 <- text_trim[231:370]
+```
+
+- Now, within each part, we can combine the chapters together.
+
+# IGNORE: Test area (where I test different codes)
+
+```{r}
+str_view(text_trim, "^Part") 
 ```
 
