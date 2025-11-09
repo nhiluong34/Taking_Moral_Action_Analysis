@@ -88,6 +88,6 @@ p1c3 <- part1[57:86]
 # IGNORE: Test area (where I test different codes)
 
 ```{r}
-str_view(text_trim, "^Part") 
+str_view(text_trim, "^Part") #comment
 ```
 
