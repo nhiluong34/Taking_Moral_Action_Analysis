@@ -61,10 +61,13 @@ text_trim[55]
 # Divide into Part then Chapter
 
 ```{r}
-str_view(text_trim, "^Part") 
+str_view(text_trim, "^Part") # detects string that starts with the word "Part"
 ```
 
 - Using str_view, we see Part I is from [55] to [140], Part II [141] to [230], Part III [231] to end (including Index). We could use this to combine text into 3 Parts first.
+- Part I: Contexts
+- Part II: Influences
+- Part III: Processes
 
 ```{r}
 part1 <- text_trim[55:140]
@@ -72,7 +75,15 @@ part2 <- text_trim[141:230]
 part3 <- text_trim[231:370]
 ```
 
-- Now, within each part, we can combine the chapters together.
+- Now, within each part, we can combine the chapters together. Using the table of contents, we know the starting page of each chapter, so repeat the same process above.
+
+```{r}
+# p1c1 stands for part 1 chapter 1 and so on
+p1c1 <- part1[3:28]
+p1c2 <- part1[29:56]
+p1c3 <- part1[57:86]
+```
+
 
 # IGNORE: Test area (where I test different codes)
 
