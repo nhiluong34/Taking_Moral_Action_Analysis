@@ -20,6 +20,16 @@ library(pdftools)
 # Scrape book pdf
 
 ```{r}
+text <- pdf_text("TakingMoralActionFinal-3.pdf")
+```
 
+## Look at some pages
+
+```{r}
+# Preface first page, index [11]
+text[11]
+
+# Chapter 1: Evolution (first page)
+text[57]
 ```
 
