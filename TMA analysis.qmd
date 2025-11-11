@@ -143,9 +143,16 @@ part2_tbl <- rbind(p2c4_tbl, p2c5_tbl, p2c6_tbl)
 part3_tbl <- rbind(p3c7_tbl, p3c8_tbl, p3c9_tbl)
 
 # All 3 parts, so the most of the book except Preface, Coda and Index
-all_parts <- rbind(part1_tbl, part2_tbl, part3_tbl)
+three_parts <- rbind(part1_tbl, part2_tbl, part3_tbl)
 
 ```
+
+### Write csv file
+
+```{r}
+write_csv(three_parts, "three_parts.csv")
+```
+
 
 # Text analysis
 
