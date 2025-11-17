@@ -52,10 +52,9 @@ cat(text[57])
 ## Basic text cleaning
 
 ```{r}
-text_trim <- str_squish(text)
+text <- str_squish(text)
 # Total of 370
 
-text_trim[55]
 ```
 
 # Breaking down to small parts
@@ -100,11 +99,28 @@ index <- part3[123:140]
 
 ```
 
-## Collapse Chapter 1 and take out References
+## Make function to collapse all chapters
+
 ```{r}
-chapter1 <- str_c(p1c1, collapse = " ")
-chapter1 <- str_remove(chapter1, "References(.*)")
+collapse_fun <- function(chapter) {
+  chap_coll <- str_c(chapter, collapse = " ")
+  chap_coll
+}
 ```
+
+```{r}
+chapter1 <- collapse_fun(p1c1)
+chapter2 <- collapse_fun(p1c2)
+chapter3 <- collapse_fun(p1c3)
+chapter4 <- collapse_fun(p2c4)
+chapter5 <- collapse_fun(p2c5)
+chapter6 <- collapse_fun(p2c6)
+chapter7 <- collapse_fun(p3c7)
+chapter8 <- collapse_fun(p3c8)
+chapter9 <- collapse_fun(p3c9)
+```
+
+chap_coll <- str_remove(chap_coll, "References(.*)")
 
 ## References (still working)
 ```{r}
@@ -114,81 +130,65 @@ ref1 <- str_extract(chapter1, "References(.*)")
 ```
 
 
-## Subsections (still working on)
+## Sections 
+- As of 11/17, Nhi was able to pull out sections but not the summary part before the first section of each chapter. 
+
+### 1
 ```{r}
 extract_section <- function(text, chap, start) {
-  pattern <- str_c(chap, "\\.", start, "(?!\\.)", "(.*)(?=", chap, "\\.", start+1, "(?![^()]*\\)))")
+  pattern <- str_c("(?<!Section )", chap, "\\.", start, "(?!\\.)", "(.*)(?=", chap, "\\.", start+1, "(?![^()]*\\)))")
   paragraph <- str_extract(text, pattern)
 }
 
 extract_section_end <- function(text, chap, start) {
-  pattern <- str_c(chap, "\\.", start, "(?!\\.)", "(.*)")
+  pattern <- str_c("(?<!Section )", chap, "\\.", start, "(?!\\.)", "(.*)")
   paragraph <- str_extract(text, pattern)
 }
 
-section <- vector("list", 7)
-for (i in 1:7) {
-  if (i < 7) {
-    section[i] <- test_function(chapter1, 1, i) 
-  } else if (i == 7) {
-      section[i] <- test_function_end(chapter1, 1, i)
-    }
-}
-
-section
-
-
 ```
 
-## Turn into clean tibble
+### 2 and more
 
 ```{r}
-# Odd pages have the word "Evolution" first then the page, so we'll switch that using str_replace
-
-p1c1 <- str_replace(p1c1, "(^Evolution) (\\d)", "\\2 \\1")
-```
-
-### Make a function to repeat the process
-
-```{r}
-# Function takes in 3 parameters: the text, part number, and chapter number
-collapse_func <- function(text, part, chapter) {
-  text <- str_c(text, collapse = " ")
-  text <- str_trim(str_remove(text, "^\\d"))
-  tibble(part = part, chapter = chapter, text)
+section_fun <- function(chapter, num_section) {
+  chap_section <- vector("list", num_section)
+  chap_num <- str_extract(chapter, "^\\d")
+  for (i in 1:num_section) {
+    if (i < num_section) {
+      chap_section[i] <- extract_section(chapter, chap_num, i) 
+    } else if (i == num_section) {
+        chap_section[i] <- extract_section_end(chapter, chap_num, i)
+      }
+  }
+  section_list <- str_extract(chap_section, "^\\d\\.\\d+")
+  section_text <- str_trim(str_extract(chap_section, "[^\\d\\.\\d+](.*)"))
+  tibble(chapter = chap_num, sections = section_list, text = section_text)
 }
 ```
 
+### Clean tibble
 ```{r}
-# Individual chapters in tibble
-p1c1_tbl <- collapse_func(p1c1, 1, 1)
-p1c2_tbl <- collapse_func(p1c2, 1, 2)
-p1c3_tbl <- collapse_func(p1c3, 1, 3)
-p2c4_tbl <- collapse_func(p2c4, 2, 4)
-p2c5_tbl <- collapse_func(p2c5, 2, 5)
-p2c6_tbl <- collapse_func(p2c6, 2, 6)
-p3c7_tbl <- collapse_func(p3c7, 3, 7)
-p3c8_tbl <- collapse_func(p3c8, 3, 8)
-p3c9_tbl <- collapse_func(p3c9, 3, 9)
-
-# Part I tibble
-part1_tbl <- rbind(p1c1_tbl, p1c2_tbl, p1c3_tbl)
-
-# Part 2
-part2_tbl <- rbind(p2c4_tbl, p2c5_tbl, p2c6_tbl)
-
-# Part 3
-part3_tbl <- rbind(p3c7_tbl, p3c8_tbl, p3c9_tbl)
-
-# All 3 parts, so the most of the book except Preface, Coda and Index
-three_parts <- rbind(part1_tbl, part2_tbl, part3_tbl)
-
+chapter1_tbl <- section_fun(chapter1, 7)
+chapter2_tbl <- section_fun(chapter2, 10)
+chapter3_tbl <- section_fun(chapter3, 7)
+chapter4_tbl <- section_fun(chapter4, 4)
+chapter5_tbl <- section_fun(chapter5, 6)
+chapter6_tbl <- section_fun(chapter6, 7) 
+chapter7_tbl <- section_fun(chapter7, 7) 
+chapter8_tbl <- section_fun(chapter8, 5)
+chapter9_tbl <- section_fun(chapter9, 6) 
 ```
 
-### Write csv file
+# Tibble w/ sections
 
 ```{r}
-write_csv(three_parts, "three_parts.csv")
+sections_tbl <- rbind(chapter1_tbl,chapter2_tbl,chapter3_tbl,chapter4_tbl,chapter5_tbl,chapter6_tbl,chapter7_tbl,chapter8_tbl,chapter9_tbl)
+```
+
+# Write csv file
+
+```{r}
+write_csv(sections_tbl, "sections.csv")
 ```
 
 
@@ -271,7 +271,10 @@ str_view(chapter1, "2.1(.*)(?=2.2(?![^()]*\\)))")
 
 str_view(chapter1, "1\\.7")
 
-
-
 ```
 
+```{r}
+# Odd pages have the word "Evolution" first then the page, so we'll switch that using str_replace
+
+p1c1 <- str_replace(p1c1, "(^Evolution) (\\d)", "\\2 \\1")
+```
