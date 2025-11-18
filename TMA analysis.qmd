@@ -122,13 +122,46 @@ chapter9 <- collapse_fun(p3c9)
 
 chap_coll <- str_remove(chap_coll, "References(.*)")
 
-## References (still working)
+## References
 ```{r}
 str_view(p1c1, "References") # from [21:26]
 
 ref1 <- str_extract(chapter1, "References(.*)")
+
+ref_extract_fun <- function(chapter) {
+  str_extract(chapter, "References(.*)")
+}
 ```
 
+```{r}
+chapters_list <- list(chapter1, chapter2, chapter3, chapter4, chapter5, chapter6, chapter7, chapter8, chapter9)
+
+ref_list <- purrr::map(chapters_list, ref_extract_fun)
+
+```
+
+```{r}
+ref_tbl <- vector("list", 9)
+for (i in 1:9) {
+  if (str_detect(ref_list[[i]], "References [a-z ]+")) {
+    ref_list[[i]] <- str_remove(ref_list[[i]], "References [a-z ]+")
+  } else if (str_detect(ref_list[[i]], "References ")) {
+      ref_list[[i]] <- str_remove(ref_list[[i]], "References ")
+  }
+    else if (str_detect(ref_list[[i]], "^Fi ")) {
+      ref_list[[i]] <- str_remove(ref_list[[i]], "^Fi ")
+    }
+  ref_tbl[[i]] <- tibble(chap_reference = ref_list[[i]])
+}
+
+references_tbl <- bind_rows(ref_tbl) |>
+  mutate(chapter = seq(1,9, by = 1)) |>
+  relocate(chapter)
+```
+
+```{r}
+write_csv(references_tbl, "References_tbl.csv")
+```
 
 ## Sections 
 - As of 11/17, Nhi was able to pull out sections but not the summary part before the first section of each chapter. 
@@ -201,18 +234,17 @@ smart_stopwords <- get_stopwords(source = "smart")
 
 ```{r}
 # Unnest to words
-chap1_words <- p1c1_tbl |>
+chap1_words <- chapter1_tbl |>
   unnest_tokens(word, text)
 
 # Filter out stop words
 chap1_words |>
   anti_join(smart_stopwords) |>
-  count(word, sort = TRUE)
+  count(chapter, word, sort = TRUE)
 ```
 
 ```{r}
-# Make some plots
-
+# Make some wordclouds
 # Chapter 1
 chap1_words |>
   anti_join(smart_stopwords) |>
@@ -258,19 +290,6 @@ tibble(part = 1, text = part1)
 str_view(part1, "References")
 test <- str_c(p1c1, collapse = " ")
 str_trim(str_remove(test, "^\\d"))
-```
-
-```{r}
-str_view(p1c1[2:4], "(\\d\\.)(.*)(\\d\\.)")
-str_view(chapter1, "(\\d\\.\\d?\\.?\\d)(.*)(?=\\d\\.\\d?\\.?\\d?)")
-
-
-str_extract(p1c1[2:4], "\\d\\.\\d\\.?\\d?")
-str_view(chapter1, "1.2(.*)(?=1.3(?![^()]*\\)))")
-str_view(chapter1, "2.1(.*)(?=2.2(?![^()]*\\)))")
-
-str_view(chapter1, "1\\.7")
-
 ```
 
 ```{r}
