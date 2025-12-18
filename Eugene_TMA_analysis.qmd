@@ -2,25 +2,73 @@
 title: "Eugene TMA"
 format: html
 editor: visual
+editor_options: 
+  chunk_output_type: console
 ---
 
-## Quarto
-
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
-
-## Running Code
-
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
-
 ```{r}
-1 + 1
+library(tidytext)
+library(dplyr)
+library(stringi)
+library(stringr)
 ```
 
-You can add options to executable code like this
-
 ```{r}
-#| echo: false
-2 * 2
+library(readr)
+sections <- read_csv("sections.csv")
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+```{r}
+unnestedSections <- unnest_tokens(sections, twoWord, text, token = "ngrams", n = 3)
+sectionSentences <- unnest_tokens(sections, twoWord, text, token = "sentences")
+```
+
+```{r}
+unnestedSections |>
+  filter(twoWord == "see section")
+```
+
+```{r}
+test <- sections |> filter(sections == 1.1) |> pull(text)
+test
+str_view(test, "Chapter \\d")
+str_extract(test, "Chapter \\d")
+
+str_count(test, "Chapter \\d")
+
+strTbl <- str_extract_all(test, "Chapter \\d")
+strTbl <- as_tibble(strTbl[[1]])
+strTbl |>
+  group_by(value) |>
+  count()
+```
+
+```{r}
+strCounter <- function(sectionData, finder){
+  sectionData <- str_to_lower(sectionData)
+  strTbl <- str_extract_all(sectionData, finder)
+  strTbl <- as_tibble(strTbl[[1]])
+  
+  strTbl |>
+    group_by(value) |>
+    count()
+}
+```
+
+```{r}
+chapter1 <- sections |> filter(chapter == 1) |> pull(text)
+```
+
+
+```{r}
+strCounter(test, "chapter \\d")
+strCounter(test, "section \\d")
+strCounter(test, "see section(.*)")
+```
+
+```{r}
+strCounter(chapter1, "chapter \\d")
+chapterExtract <- str_extract_all(chapter1, "Chapter \\d")
+chapterExtract <- as_tibble(chapterExtract[[1]])
+```
+
