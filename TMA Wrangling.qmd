@@ -59,11 +59,11 @@ raw_text <- str_squish(text)
 # Breaking down to small parts
 
 ```{r}
-str_view(text_trim, "^Part") # detects string that starts with the word "Part"
+#str_view(text_trim, "^Part") # detects string that starts with the word "Part"
 
-str_view(text_trim, "References")
+#str_view(text_trim, "References")
 
-str_extract(text_trim[55], "\\d+")
+#str_extract(text_trim[55], "\\d+")
 ```
 
 - Using str_view, we see Part I is from [55] to [140], Part II [141] to [230], Part III [231] to end (including Index). We could use this to combine text into 3 Parts first.
@@ -73,9 +73,9 @@ str_extract(text_trim[55], "\\d+")
 
 ## Part
 ```{r}
-part1 <- str_replace_all(text_trim[55:140], "- ", "")
-part2 <- str_replace_all(text_trim[141:230], "- ", "")
-part3 <- str_replace_all(text_trim[231:370], "- ", "")
+part1 <- str_replace_all(raw_text[55:140], "- ", "")
+part2 <- str_replace_all(raw_text[141:230], "- ", "")
+part3 <- str_replace_all(raw_text[231:370], "- ", "")
 
 ```
 
@@ -323,7 +323,7 @@ str_count(chapter1, "(?<=Chapter\\s)[0-9]+")
 # IGNORE: Test area (where I test different codes)
 
 ```{r}
-str_view(text_trim, "^Part") #comment
+str_view(raw_text, "^Part") #comment
 str_view(part3, "^Index")
 
 # Table will look something like this
