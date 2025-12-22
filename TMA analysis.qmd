@@ -16,284 +16,75 @@ library(ggplot2)
 library(dplyr)
 library(pdftools)
 library(stringr)
+library(readr)
+library(tidyr)
 ```
-
-# Scrape book pdf
 
 ```{r}
-text <- pdf_text("TakingMoralActionFinal-3.pdf")
+references <- read_csv("references.csv")
+book <- read_csv("book.csv")
+three_parts <- read_csv("three_parts.csv")
+
+#Sentiments
+ncr <- get_sentiments("nrc")
+bing <- get_sentiments("bing")
+afinn <- get_sentiments("afinn")
+
+stop_words <- stop_words |> filter(lexicon == "SMART")
 ```
 
-## Basic info
+# Chapter Analysis
 
 ```{r}
-# Author, version, etc
-pdf_info("TakingMoralActionFinal-3.pdf")
-
-# Table of contents
-toc <- pdf_toc("TakingMoralActionFinal-3.pdf") # doesn't work well here
-
-# Fonts
-pdf_fonts("TakingMoralActionFinal-3.pdf")
-
+book_sentiment <- book |>
+  unnest_tokens(sentences, text, token = "lines") |>
+  group_by(chapter) |>
+  mutate(linenumber = row_number()) |>
+  ungroup() |>
+  unnest_tokens(word, sentences) |>
+  inner_join(bing) |>
+  count(chapter, linenumber, sentiment) %>%
+  pivot_wider(names_from = sentiment, values_from = n, values_fill = 0) %>% 
+  mutate(sentiment = positive - negative) |>
+  ggplot(aes(linenumber, sentiment, fill = chapter)) +
+  geom_col(show.legend = F) +
+  facet_wrap(~chapter, ncol = 2, scales = "free_x")
 ```
 
-
-## Look at some pages
-
-```{r}
-# Preface first page, index [11]
-text[11]
-
-# Chapter 1: Evolution (first page)
-cat(text[57])
-```
-
-## Basic text cleaning
-
-```{r}
-text <- str_squish(text)
-# Total of 370
-
-```
-
-# Breaking down to small parts
-
-```{r}
-str_view(text_trim, "^Part") # detects string that starts with the word "Part"
-
-str_view(text_trim, "References")
-
-str_extract(text_trim[55], "\\d+")
-```
-
-- Using str_view, we see Part I is from [55] to [140], Part II [141] to [230], Part III [231] to end (including Index). We could use this to combine text into 3 Parts first.
-- Part I: Contexts
-- Part II: Influences
-- Part III: Processes
-
-## Part
-```{r}
-part1 <- str_replace_all(text_trim[55:140], "- ", "")
-part2 <- str_replace_all(text_trim[141:230], "- ", "")
-part3 <- str_replace_all(text_trim[231:370], "- ", "")
-
-```
-
-- Now, within each part, we can combine the chapters together. Using the table of contents, we know the starting page of each chapter, so repeat the same process above.
+# Count references
 
 ## Chapter
 ```{r}
-# p1c1 stands for part 1 chapter 1 and so on
-p1c1 <- part1[3:28]
-p1c2 <- part1[29:56]
-p1c3 <- part1[57:86]
-p2c4 <- part2[3:28]
-p2c5 <- part2[29:58]
-p2c6 <- part2[59:90]
-p3c7 <- part3[3:38]
-p3c8 <- part3[39:69]
-p3c9 <- part3[70:114]
-coda <- part3[115:122]
-index <- part3[123:140]
-
+book |> 
+  mutate(text = str_to_lower(text),
+         ref_extract = str_extract_all(text, "chapter \\d")) |>
+  select(sections, ref_extract) |>
+  unnest(ref_extract) |>
+  group_by(sections, ref_extract) |>
+  count()
 ```
 
-## Make function to collapse all chapters
+## Sections
+```{r}
+book |>
+  mutate(text = str_to_lower(text),
+         ref_extract = str_extract_all(text, "section \\d+(?:\\.\\d+)+")) |>
+  select(sections, ref_extract) |>
+  unnest(ref_extract) |>
+  group_by(sections, ref_extract) |>
+  count()
+
+str_view(book$text, "Section \\d+(?:\\.\\d+)+")
+```
+
+
+# !Test Area
 
 ```{r}
-collapse_fun <- function(chapter) {
-  chap_coll <- str_c(chapter, collapse = " ")
-  chap_coll
-}
+test <- book |> filter(book == 1.1) |> pull(text)
+
+str_view(test, "Chapter \\d")
+str_extract_all(test, "Chapter \\d")
+str_extract_all(test, "Section \\d")
 ```
 
-```{r}
-chapter1 <- collapse_fun(p1c1)
-chapter2 <- collapse_fun(p1c2)
-chapter3 <- collapse_fun(p1c3)
-chapter4 <- collapse_fun(p2c4)
-chapter5 <- collapse_fun(p2c5)
-chapter6 <- collapse_fun(p2c6)
-chapter7 <- collapse_fun(p3c7)
-chapter8 <- collapse_fun(p3c8)
-chapter9 <- collapse_fun(p3c9)
-```
-
-chap_coll <- str_remove(chap_coll, "References(.*)")
-
-## References
-```{r}
-str_view(p1c1, "References") # from [21:26]
-
-ref1 <- str_extract(chapter1, "References(.*)")
-
-ref_extract_fun <- function(chapter) {
-  str_extract(chapter, "References(.*)")
-}
-```
-
-```{r}
-chapters_list <- list(chapter1, chapter2, chapter3, chapter4, chapter5, chapter6, chapter7, chapter8, chapter9)
-
-ref_list <- purrr::map(chapters_list, ref_extract_fun)
-
-```
-
-```{r}
-ref_tbl <- vector("list", 9)
-for (i in 1:9) {
-  if (str_detect(ref_list[[i]], "References [a-z ]+")) {
-    ref_list[[i]] <- str_remove(ref_list[[i]], "References [a-z ]+")
-  } else if (str_detect(ref_list[[i]], "References ")) {
-      ref_list[[i]] <- str_remove(ref_list[[i]], "References ")
-  }
-    else if (str_detect(ref_list[[i]], "^Fi ")) {
-      ref_list[[i]] <- str_remove(ref_list[[i]], "^Fi ")
-    }
-  ref_tbl[[i]] <- tibble(chap_reference = ref_list[[i]])
-}
-
-references_tbl <- bind_rows(ref_tbl) |>
-  mutate(chapter = seq(1,9, by = 1)) |>
-  relocate(chapter)
-```
-
-```{r}
-write_csv(references_tbl, "References_tbl.csv")
-```
-
-## Sections 
-- As of 11/17, Nhi was able to pull out sections but not the summary part before the first section of each chapter. 
-
-### 1
-```{r}
-extract_section <- function(text, chap, start) {
-  pattern <- str_c("(?<!Section )", chap, "\\.", start, "(?!\\.)", "(.*)(?=", chap, "\\.", start+1, "(?![^()]*\\)))")
-  paragraph <- str_extract(text, pattern)
-}
-
-extract_section_end <- function(text, chap, start) {
-  pattern <- str_c("(?<!Section )", chap, "\\.", start, "(?!\\.)", "(.*)")
-  paragraph <- str_extract(text, pattern)
-}
-
-```
-
-### 2 and more
-
-```{r}
-section_fun <- function(chapter, num_section) {
-  chap_section <- vector("list", num_section)
-  chap_num <- str_extract(chapter, "^\\d")
-  for (i in 1:num_section) {
-    if (i < num_section) {
-      chap_section[i] <- extract_section(chapter, chap_num, i) 
-    } else if (i == num_section) {
-        chap_section[i] <- extract_section_end(chapter, chap_num, i)
-      }
-  }
-  section_list <- str_extract(chap_section, "^\\d\\.\\d+")
-  section_text <- str_trim(str_extract(chap_section, "[^\\d\\.\\d+](.*)"))
-  tibble(chapter = chap_num, sections = section_list, text = section_text)
-}
-```
-
-### Clean tibble
-```{r}
-chapter1_tbl <- section_fun(chapter1, 7)
-chapter2_tbl <- section_fun(chapter2, 10)
-chapter3_tbl <- section_fun(chapter3, 7)
-chapter4_tbl <- section_fun(chapter4, 4)
-chapter5_tbl <- section_fun(chapter5, 6)
-chapter6_tbl <- section_fun(chapter6, 7) 
-chapter7_tbl <- section_fun(chapter7, 7) 
-chapter8_tbl <- section_fun(chapter8, 5)
-chapter9_tbl <- section_fun(chapter9, 6) 
-```
-
-# Tibble w/ sections
-
-```{r}
-sections_tbl <- rbind(chapter1_tbl,chapter2_tbl,chapter3_tbl,chapter4_tbl,chapter5_tbl,chapter6_tbl,chapter7_tbl,chapter8_tbl,chapter9_tbl)
-```
-
-# Write csv file
-
-```{r}
-write_csv(sections_tbl, "sections.csv")
-```
-
-
-# Text analysis
-
-```{r}
-# Load in stopwords
-smart_stopwords <- get_stopwords(source = "smart")
-```
-
-```{r}
-# Unnest to words
-chap1_words <- chapter1_tbl |>
-  unnest_tokens(word, text)
-
-# Filter out stop words
-chap1_words |>
-  anti_join(smart_stopwords) |>
-  count(chapter, word, sort = TRUE)
-```
-
-```{r}
-# Make some wordclouds
-# Chapter 1
-chap1_words |>
-  anti_join(smart_stopwords) |>
-  count(word, sort = TRUE) |>
-  filter(word != "NA") |>
-  slice_max(n, n = 20) |>
-  ggplot(aes(fct_reorder(word, n), n)) +
-  geom_col() +
-  coord_flip()
-
-# Chapter 2
-p1c2_tbl |>
-  unnest_tokens(word, text) |>
-  anti_join(smart_stopwords) |>
-  count(word, sort = TRUE) |>
-  filter(word != "NA") |>
-  slice_max(n, n = 20) |>
-  ggplot(aes(fct_reorder(word, n), n)) +
-  geom_col() +
-  coord_flip()
-
-# Chapter 3
-p1c3_tbl |>
-  unnest_tokens(word, text) |>
-  anti_join(smart_stopwords) |>
-  count(word, sort = TRUE) |>
-  filter(word != "NA") |>
-  slice_max(n, n = 20) |>
-  ggplot(aes(fct_reorder(word, n), n)) +
-  geom_col() +
-  coord_flip()
-```
-
-# IGNORE: Test area (where I test different codes)
-
-```{r}
-str_view(text_trim, "^Part") #comment
-str_view(part3, "^Index")
-
-# Table will look something like this
-tibble(part = 1, text = part1)
-
-str_view(part1, "References")
-test <- str_c(p1c1, collapse = " ")
-str_trim(str_remove(test, "^\\d"))
-```
-
-```{r}
-# Odd pages have the word "Evolution" first then the page, so we'll switch that using str_replace
-
-p1c1 <- str_replace(p1c1, "(^Evolution) (\\d)", "\\2 \\1")
-```

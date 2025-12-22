@@ -145,7 +145,7 @@ for (i in 1:9) {
     ref_list[[i]] <- str_remove(ref_list[[i]], "References [a-z ]+")
   } else if (str_detect(ref_list[[i]], "References ")) {
       ref_list[[i]] <- str_remove(ref_list[[i]], "References ")
-  }
+    }
     else if (str_detect(ref_list[[i]], "^Fi ")) {
       ref_list[[i]] <- str_remove(ref_list[[i]], "^Fi ")
     }
